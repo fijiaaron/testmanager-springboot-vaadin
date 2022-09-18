@@ -1,7 +1,5 @@
 package org.testrunner.testmanager.api;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.testrunner.testmanager.model.TestCase;
@@ -16,14 +14,29 @@ public class TestCaseController
 	TestCaseService service = new TestCaseService();
 
 	@GetMapping("/testcases")
-	public ResponseEntity<List<TestCase>> list()
+	public ResponseEntity<List<TestCase>> list(@RequestParam(required = false) String name)
 	{
-		List<TestCase> testCases =  service.findAll();
+		List<TestCase> testCases;
+
+		if (name == null || name.isEmpty())
+		{
+			testCases = service.findAll();
+		}
+		else
+		{
+			testCases = service.findByName(name);
+
+			if (testCases.size() == 0)
+			{
+				return ResponseEntity.notFound().build();
+			}
+		}
+
 		return ResponseEntity.ok(testCases);
 	}
 
-	@GetMapping("/testcase") // ?name=caseInsensitiveMatcher
-	public ResponseEntity<List<TestCase>> findTestCasesByName(@RequestParam String name)
+	@GetMapping("/testcases/name/{matching}")
+	public ResponseEntity<List<TestCase>> findTestCasesByName(@PathVariable(value = "matching", required = true) String name)
 	{
 		List<TestCase> testCases = service.findByName(name);
 
@@ -32,11 +45,16 @@ public class TestCaseController
 			return ResponseEntity.notFound().build();
 		}
 
+		if (testCases.size() > 1)
+		{
+			return ResponseEntity.unprocessableEntity().build();
+		}
+
 		return ResponseEntity.ok(testCases);
 	}
 
 
-	@GetMapping("/testcase/{id}")
+	@GetMapping("/testcases/{id}")
 	public ResponseEntity<TestCase> getTestCase(@PathVariable("id") long id)
 	{
 		try
